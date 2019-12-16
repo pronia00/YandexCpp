@@ -35,9 +35,9 @@ struct Person {
 };
 
 struct AddressHasher {
-  const hash<string> shash;
-  const hash<int> ihash;
-  const size_t coef = 2'946'901;
+  hash<string> shash;
+  hash<int> ihash;
+  size_t coef = 2'946'901;
 
   size_t operator() (const Address& ad) const {
       return (
@@ -49,11 +49,11 @@ struct AddressHasher {
 };
 
 struct PersonHasher {
-  const hash<string> shash;
-  const hash<int> ihash;
-  const hash<double> dhash;
-  const AddressHasher adhash;
-  const const size_t coef = 39'916'801;
+  hash<string> shash;
+  hash<int> ihash;
+  hash<double> dhash;
+  AddressHasher adhash;
+  size_t coef = 39'916'801;
 
   size_t operator() (const Person& p) const{
     return (
