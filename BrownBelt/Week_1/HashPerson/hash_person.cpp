@@ -11,8 +11,8 @@ struct Address {
 
   bool operator==(const Address& other) const {
       return (
-        city     == other.city &&
-        street   == other.street &&
+        city == other.city &&
+        street == other.street &&
         building == other.building
       );
   }
@@ -26,17 +26,17 @@ struct Person {
 
   bool operator==(const Person& other) const {
     return (
-      name    == other.name &&
-      height  == other.height &&
-      weight  == other.weight && 
+      name == other.name &&
+      height == other.height &&
+      weight == other.weight && 
       address == other.address
     );
   }
 };
 
 struct AddressHasher {
-  hash<string> shash;
-  hash<int> ihash;
+  const hash<string> shash;
+  const hash<int> ihash;
   const size_t coef = 2'946'901;
 
   size_t operator() (const Address& ad) const {
@@ -49,12 +49,11 @@ struct AddressHasher {
 };
 
 struct PersonHasher {
-  
-  hash<string> shash;
-  hash<int> ihash;
-  hash<double> dhash;
-  AddressHasher adhash;
-  const size_t coef = 2'946'901;
+  const hash<string> shash;
+  const hash<int> ihash;
+  const hash<double> dhash;
+  const AddressHasher adhash;
+  const const size_t coef = 39'916'801;
 
   size_t operator() (const Person& p) const{
     return (
