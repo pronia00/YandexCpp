@@ -14,18 +14,20 @@ struct Point3D {
   CoordType z;
 
   bool operator==(const Point3D& other) const {
-    return 
-        x == other.x && 
-        y == other.y && 
-        z == other.z;
+    return  x == other.x && y == other.y && z == other.z;
   }
 };
 
 struct Hasher {
   size_t operator() (const Point3D& p) const {
-    return chash(p.x) + chash(p.y) + chash(p.z);
+    return( 
+      coef * coef * chash(p.x) +
+             coef * chash(p.y) + 
+                    chash(p.z)
+    );
   }
   hash<CoordType> chash;
+  const size_t coef = 2'946'901;
 };
 
 void TestSmoke() {
