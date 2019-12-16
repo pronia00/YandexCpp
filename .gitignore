@@ -31,5 +31,5 @@
 *.out
 *.app
 
-# Configurations 
-/.vscode/*
+# VS Code Configurations
+**/.vscode/*
