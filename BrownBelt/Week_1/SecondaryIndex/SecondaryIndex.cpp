@@ -19,6 +19,9 @@ struct Record {
   int timestamp;
   int karma;
 
+  Record() {
+  }
+
   Record(string _id, string _title, string _user, int _ts, int _karma) 
       : id(_id)
       , title(_title)
@@ -107,22 +110,18 @@ public:
 
     return true;
   }
-  // template <typename Iterator, typename Callback> 
-  // void RangeBy(Itertor range_begin, Iterator range_end, Callback callback) const{
-  //   for (auto cur = range_begin; cur != range_end; ++cur) {
-  //     if (callback(*(cur->second)) != true) {
-  //       break;
-  //     };
-  //   }
-  // }
 
   template <typename Callback>
   void RangeByTimestamp(int low, int high, Callback callback) const {
       auto range_begin = timestamp_data.lower_bound(low);
       auto range_end = timestamp_data.end();
 
-      for (auto cur = range_begin; cur != range_end, cur->second->timestamp <= high; ++cur) {
-        if (callback(*(cur->second)) != true) {
+      for (auto cur = range_begin; cur != range_end; cur++) {
+        
+        if (cur->second->timestamp > high) {
+          break;
+        }
+        if (!callback(*(cur->second))) {
             break;
         } 
       }
@@ -133,24 +132,28 @@ public:
       auto range_begin = karma_data.lower_bound(low);
       auto range_end = karma_data.end();
 
-      for (auto cur = range_begin; cur != range_end, cur->second->karma <= high; ++cur) {
-          if (callback(*(cur->second)) != true) {
-            break;
-          }
+      for (auto cur = range_begin; cur != range_end; ++cur) {
+        if (cur->second->karma > high) {
+          break;
+        }
+        if (!callback(*(cur->second))) {
+          break;
+        }
       }
   }
-
 
   template <typename Callback>
   void AllByUser(const string& user, Callback callback) const {
     auto range_begin = user_data.lower_bound(user);
     auto range_end = user_data.end();
-    for (auto cur = range_begin; cur != range_end, cur->second->user == user; ++cur) {
-          if (callback(*(cur->second)) != true) {
-            break;
-          }
-      }
-    
+    for (auto cur = range_begin; cur != range_end; ++cur) {
+        if (cur->second->user != user) {
+          break;
+        }
+        if (!callback(*(cur->second))) {
+          break;
+        }
+    }
   }
 
 private: 
@@ -231,6 +234,14 @@ void TestRangeBoundaries() {
   });
 
   ASSERT_EQUAL(2, count);
+
+  int count2 = 0;
+  db.AllByUser("master", [&count2](const Record&) {
+    ++count2;
+    return true;
+  });
+  ASSERT_EQUAL(1, count2);
+
 }
 
 void TestSecondaryContainersSize() {
@@ -295,9 +306,9 @@ int main() {
   RUN_TEST(tr, TestGetById);
   RUN_TEST(tr, TestErase);
   RUN_TEST(tr, TestSameUser);
-  RUN_TEST(tr, TestRangeBoundaries);
   RUN_TEST(tr, TestReplacement);
   RUN_TEST(tr, TestSecondaryContainersSize);
+  RUN_TEST(tr, TestRangeBoundaries);
 
   return 0;
 }
