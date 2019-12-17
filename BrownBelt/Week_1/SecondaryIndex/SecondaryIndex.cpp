@@ -53,15 +53,18 @@ struct HashRecord {
   }
 };
 
-struct SecondaryIndex {
-    list<Record>::iterator list_iter;
-    multimap<int, list<Record>::iterator>::iterator ts_iter; 
-    multimap<int, list<Record>::iterator>::iterator karma_iter;
-    multimap<string, list<Record>::iterator>::iterator user_iter;
-};
 // Реализуйте этот класс
 class Database {
 public:
+  using data_iter = list<Record>::iterator;
+  
+  struct SecondaryIndex {
+      data_iter list_iter;
+      multimap<int, data_iter>::iterator ts_iter; 
+      multimap<int, data_iter>::iterator karma_iter;
+      multimap<string, data_iter>::iterator user_iter;
+  };
+
   bool Put(const Record& record) {
     if (id_data.find(record.id) != id_data.end()) {
         return false;
@@ -105,27 +108,25 @@ public:
 
   template <typename Callback>
   void RangeByTimestamp(int low, int high, Callback callback) const {
-      auto begin_iter = timestamp_data.lower_bound(low);
-      auto cur = begin_iter;
-      auto end_iter = timestamp_data.end();
+      auto range_begin = timestamp_data.lower_bound(low);
+      auto range_end = timestamp_data.end();
 
-      for (int i = low; i <= high, cur != end_iter; ++cur, ++i) {
-        // if (callback() != true) {
-        //   break;
-        // } 
+      for (auto cur = range_begin; cur != range_end, cur->second->timestamp <= high; ++cur) {
+        if (callback(*(cur->second)) != true) {
+            break;
+        } 
       }
   }
 
   template <typename Callback>
   void RangeByKarma(int low, int high, Callback callback) const {
-    auto begin_iter = karma_data.lower_bound(low);
-      auto cur = begin_iter;
-      auto end_iter = karma_data.end();
+      auto range_begin = karma_data.lower_bound(low);
+      auto range_end = karma_data.end();
 
-      for (int i = low; i <= high, cur != end_iter; ++cur, ++i) {
-        // if (callback() != true) {
-        //   break;
-        // } 
+      for (auto cur = range_begin; cur != range_end, cur->second->karma <= high; ++cur) {
+          if (callback(*(cur->second)) != true) {
+            break;
+          }
       }
   }
 
@@ -144,9 +145,9 @@ public:
 private: 
   list<Record> data;
   unordered_map<string, SecondaryIndex, hash<string>> id_data;
-  multimap<const int, list<Record>::iterator> timestamp_data;
-  multimap<const int, list<Record>::iterator> karma_data;
-  multimap<const string, list<Record>::iterator> user_data;
+  multimap<int, data_iter> timestamp_data;
+  multimap<int, data_iter> karma_data;
+  multimap<string, data_iter> user_data;
 
 };
 
@@ -207,22 +208,22 @@ void TestRecordEquality() {
   ASSERT(!(r3 == r4));
 }
 
-// void TestRangeBoundaries() {
-//   const int good_karma = 1000;
-//   const int bad_karma = -10;
+void TestRangeBoundaries() {
+  const int good_karma = 1000;
+  const int bad_karma = -10;
 
-//   Database db;
-//   db.Put({"id1", "Hello there", "master", 1536107260, good_karma});
-//   db.Put({"id2", "O>>-<", "general2", 1536107260, bad_karma});
+  Database db;
+  db.Put({"id1", "Hello there", "master", 1536107260, good_karma});
+  db.Put({"id2", "O>>-<", "general2", 1536107260, bad_karma});
 
-//   int count = 0;
-//   db.RangeByKarma(bad_karma, good_karma, [&count](const Record&) {
-//     ++count;
-//     return true;
-//   });
+  int count = 0;
+  db.RangeByKarma(bad_karma, good_karma, [&count](const Record&) {
+    ++count;
+    return true;
+  });
 
-//   ASSERT_EQUAL(2, count);
-// }
+  ASSERT_EQUAL(2, count);
+}
 
 void TestSameUser() {
   Database db;
@@ -238,18 +239,18 @@ void TestSameUser() {
   ASSERT_EQUAL(2, count);
 }
 
-// void TestReplacement() {
-//   const string final_body = "Feeling sad";
+void TestReplacement() {
+  const string final_body = "Feeling sad";
 
-//   Database db;
-//   db.Put({"id", "Have a hand", "not-master", 1536107260, 10});
-//   db.Erase("id");
-//   db.Put({"id", final_body, "not-master", 1536107260, -10});
+  Database db;
+  db.Put({"id", "Have a hand", "not-master", 1536107260, 10});
+  db.Erase("id");
+  db.Put({"id", final_body, "not-master", 1536107260, -10});
 
-//   auto record = db.GetById("id");
-//   ASSERT(record != nullptr);
-//   ASSERT_EQUAL(final_body, record->title);
-// }
+  auto record = db.GetById("id");
+  ASSERT(record != nullptr);
+  ASSERT_EQUAL(final_body, record->title);
+}
 
 int main() {
   TestRunner tr;
@@ -258,7 +259,7 @@ int main() {
   RUN_TEST(tr, TestGetById);
   RUN_TEST(tr, TestErase);
   RUN_TEST(tr, TestSameUser);
-  //RUN_TEST(tr, TestRangeBoundaries);
-  //RUN_TEST(tr, TestReplacement);
+  RUN_TEST(tr, TestRangeBoundaries);
+  RUN_TEST(tr, TestReplacement);
   return 0;
 }
