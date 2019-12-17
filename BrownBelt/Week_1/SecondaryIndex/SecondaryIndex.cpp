@@ -7,9 +7,8 @@
 #include <unordered_set>
 #include <utility>
 #include <list>
-#include <sstream>
 #include <iterator>
-
+#include <algorithm>
 
 using namespace std;
 
@@ -56,7 +55,9 @@ struct HashRecord {
 
 struct SecondaryIndex {
     list<Record>::iterator list_iter;
-
+    multimap<int, list<Record>::iterator>::iterator ts_iter; 
+    multimap<int, list<Record>::iterator>::iterator karma_iter;
+    multimap<string, list<Record>::iterator>::iterator user_iter;
 };
 // Реализуйте этот класс
 class Database {
@@ -65,18 +66,15 @@ public:
     if (id_data.find(record.id) != id_data.end()) {
         return false;
     }
+    SecondaryIndex index;
     //insert data to main storage 
-    data.push_front(record);
+    index.list_iter = data.insert(data.begin(), record);
 
-    /*insert data to secondary storages
-        ...
-    */
-
-    //create seondary index
-    SecondaryIndex index {
-      data.begin()
-    };
-
+    //insert data to secondary storages
+ 		index.ts_iter = timestamp_data.insert({ record.timestamp, index.list_iter });
+    index.karma_iter = karma_data.insert({ record.karma, index.list_iter });
+    index.user_iter = user_data.insert({record.user, index.list_iter});
+  
     //move secondary index to hash_map for O(1) access by index
     id_data[record.id] = move(index);
     return true;
@@ -89,21 +87,83 @@ public:
       : &(*(res->second.list_iter));
 
   }
-  bool Erase(const string& id);
+  bool Erase(const string& id) {
+    auto res = id_data.find(id);
+    if (res == id_data.end()) {
+      return false;
+    }
+    timestamp_data.erase(res->second.ts_iter);
+    karma_data.erase(res->second.karma_iter);
+    user_data.erase(res->second.user_iter);
+    data.erase(res->second.list_iter);
+
+    //delete other secondary index contatiners
+    id_data.erase(res);
+
+    return true;
+  }
 
   template <typename Callback>
-  void RangeByTimestamp(int low, int high, Callback callback) const;
+  void RangeByTimestamp(int low, int high, Callback callback) const {
+      auto begin_iter = timestamp_data.lower_bound(low);
+      auto cur = begin_iter;
+      auto end_iter = timestamp_data.end();
+
+      for (int i = low; i <= high, cur != end_iter; ++cur, ++i) {
+        // if (callback() != true) {
+        //   break;
+        // } 
+      }
+  }
 
   template <typename Callback>
-  void RangeByKarma(int low, int high, Callback callback) const;
+  void RangeByKarma(int low, int high, Callback callback) const {
+    auto begin_iter = karma_data.lower_bound(low);
+      auto cur = begin_iter;
+      auto end_iter = karma_data.end();
+
+      for (int i = low; i <= high, cur != end_iter; ++cur, ++i) {
+        // if (callback() != true) {
+        //   break;
+        // } 
+      }
+  }
 
   template <typename Callback>
-  void AllByUser(const string& user, Callback callback) const;
+  void AllByUser(const string& user, Callback callback) const {
+    auto range_begin = user_data.lower_bound(user);
+    auto range_end = user_data.end();
+
+    for (auto cur = range_begin; cur != range_end; ++cur) {
+      if (callback(*(cur->second)) != true) {
+        break;
+      };
+    }
+  }
 
 private: 
   list<Record> data;
   unordered_map<string, SecondaryIndex, hash<string>> id_data;
+  multimap<const int, list<Record>::iterator> timestamp_data;
+  multimap<const int, list<Record>::iterator> karma_data;
+  multimap<const string, list<Record>::iterator> user_data;
+
 };
+
+void TestErase() {
+  Database db;
+  Record r1{"1", "title", "user", 1, 1};
+  Record r2{"2", "title", "user", 1, 1};
+  Record r3{"3", "title", "user", 1, 1};
+
+  db.Put(r1);
+  db.Put(r2);
+  
+  ASSERT(db.Erase(r1.id));
+  ASSERT(db.Erase(r2.id));
+  ASSERT(!db.Erase(r1.id));
+  ASSERT(!db.Erase(r3.id));
+}
 
 void TestPut() {
   Database db;
@@ -164,19 +224,19 @@ void TestRecordEquality() {
 //   ASSERT_EQUAL(2, count);
 // }
 
-// void TestSameUser() {
-//   Database db;
-//   db.Put({"id1", "Don't sell", "master", 1536107260, 1000});
-//   db.Put({"id2", "Rethink life", "master", 1536107260, 2000});
+void TestSameUser() {
+  Database db;
+  db.Put({"id1", "Don't sell", "master", 1536107260, 1000});
+  db.Put({"id2", "Rethink life", "master", 1536107260, 2000});
 
-//   int count = 0;
-//   db.AllByUser("master", [&count](const Record&) {
-//     ++count;
-//     return true;
-//   });
+  int count = 0;
+  db.AllByUser("master", [&count](const Record&) {
+    ++count;
+    return true;
+  });
 
-//   ASSERT_EQUAL(2, count);
-// }
+  ASSERT_EQUAL(2, count);
+}
 
 // void TestReplacement() {
 //   const string final_body = "Feeling sad";
@@ -196,8 +256,9 @@ int main() {
   RUN_TEST(tr, TestRecordEquality);
   RUN_TEST(tr, TestPut);
   RUN_TEST(tr, TestGetById);
+  RUN_TEST(tr, TestErase);
+  RUN_TEST(tr, TestSameUser);
   //RUN_TEST(tr, TestRangeBoundaries);
-  //RUN_TEST(tr, TestSameUser);
   //RUN_TEST(tr, TestReplacement);
   return 0;
 }
