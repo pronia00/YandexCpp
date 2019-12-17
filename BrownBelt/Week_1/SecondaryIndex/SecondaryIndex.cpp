@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 using namespace std;
 
@@ -13,6 +14,36 @@ struct Record {
   string user;
   int timestamp;
   int karma;
+
+  Record(string _id, string _title, string _user, int _ts, int _karma) 
+      : id(_id)
+      , title(_title)
+      , user(_user)
+      , timestamp(_ts)
+      , karma(_karma)
+  {};
+
+  bool operator==(const Record& other) const {
+    return 
+      make_tuple(id, title, user, timestamp, karma) ==
+      make_tuple(other.id, other.title, other.user, other.timestamp, other.karma);
+  }
+};
+
+struct HashRecord {
+  hash<string> string_hash;
+  hash<int> int_hash;
+  const size_t coef = 2'953'737;
+
+  size_t operator() (const Record& rec) const {
+    return ( 
+        coef * coef * coef * coef * string_hash(rec.id) +
+               coef * coef * coef * string_hash(rec.title) +
+                      coef * coef * string_hash(rec.user) +
+                             coef * int_hash(rec.timestamp) +
+                                    int_hash(rec.karma)
+    );
+  }
 };
 
 // Реализуйте этот класс
@@ -32,54 +63,67 @@ public:
   void AllByUser(const string& user, Callback callback) const;
 };
 
-void TestRangeBoundaries() {
-  const int good_karma = 1000;
-  const int bad_karma = -10;
+void TestRecordEquality() {
+  Record r1("one", "two", "tree", 1, 2);
+  Record r2("one", "two", "tree", 1, 2);
 
-  Database db;
-  db.Put({"id1", "Hello there", "master", 1536107260, good_karma});
-  db.Put({"id2", "O>>-<", "general2", 1536107260, bad_karma});
+  ASSERT(r1 == r2);
 
-  int count = 0;
-  db.RangeByKarma(bad_karma, good_karma, [&count](const Record&) {
-    ++count;
-    return true;
-  });
+  Record r3("one", "two", "tree", 1, 2);
+  Record r4("six", "five", "four", 6, 5);
 
-  ASSERT_EQUAL(2, count);
+  ASSERT(!(r3 == r4));
 }
 
-void TestSameUser() {
-  Database db;
-  db.Put({"id1", "Don't sell", "master", 1536107260, 1000});
-  db.Put({"id2", "Rethink life", "master", 1536107260, 2000});
+// void TestRangeBoundaries() {
+//   const int good_karma = 1000;
+//   const int bad_karma = -10;
 
-  int count = 0;
-  db.AllByUser("master", [&count](const Record&) {
-    ++count;
-    return true;
-  });
+//   Database db;
+//   db.Put({"id1", "Hello there", "master", 1536107260, good_karma});
+//   db.Put({"id2", "O>>-<", "general2", 1536107260, bad_karma});
 
-  ASSERT_EQUAL(2, count);
-}
+//   int count = 0;
+//   db.RangeByKarma(bad_karma, good_karma, [&count](const Record&) {
+//     ++count;
+//     return true;
+//   });
 
-void TestReplacement() {
-  const string final_body = "Feeling sad";
+//   ASSERT_EQUAL(2, count);
+// }
 
-  Database db;
-  db.Put({"id", "Have a hand", "not-master", 1536107260, 10});
-  db.Erase("id");
-  db.Put({"id", final_body, "not-master", 1536107260, -10});
+// void TestSameUser() {
+//   Database db;
+//   db.Put({"id1", "Don't sell", "master", 1536107260, 1000});
+//   db.Put({"id2", "Rethink life", "master", 1536107260, 2000});
 
-  auto record = db.GetById("id");
-  ASSERT(record != nullptr);
-  ASSERT_EQUAL(final_body, record->title);
-}
+//   int count = 0;
+//   db.AllByUser("master", [&count](const Record&) {
+//     ++count;
+//     return true;
+//   });
+
+//   ASSERT_EQUAL(2, count);
+// }
+
+// void TestReplacement() {
+//   const string final_body = "Feeling sad";
+
+//   Database db;
+//   db.Put({"id", "Have a hand", "not-master", 1536107260, 10});
+//   db.Erase("id");
+//   db.Put({"id", final_body, "not-master", 1536107260, -10});
+
+//   auto record = db.GetById("id");
+//   ASSERT(record != nullptr);
+//   ASSERT_EQUAL(final_body, record->title);
+// }
 
 int main() {
   TestRunner tr;
-  RUN_TEST(tr, TestRangeBoundaries);
-  RUN_TEST(tr, TestSameUser);
-  RUN_TEST(tr, TestReplacement);
+  RUN_TEST(tr, TestRecordEquality);
+  //RUN_TEST(tr, TestRangeBoundaries);
+  //RUN_TEST(tr, TestSameUser);
+  //RUN_TEST(tr, TestReplacement);
   return 0;
 }
