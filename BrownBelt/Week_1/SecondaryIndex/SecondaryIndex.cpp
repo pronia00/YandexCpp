@@ -26,9 +26,7 @@ struct Record {
       , timestamp(_ts)
       , karma(_karma)
   {};
-  void operator<<(ostream& os) {
-    os << id << title << user << timestamp << karma;
-  }
+  
   bool operator==(const Record& other) const {
     return 
       make_tuple(id, title, user, timestamp, karma) ==
@@ -38,18 +36,10 @@ struct Record {
 
 struct HashRecord {
   hash<string> string_hash;
-  hash<int> int_hash;
   const size_t coef = 2'953'737;
 
   size_t operator() (const Record& rec) const {
-    // return ( 
-    //     coef * coef * coef * coef * string_hash(rec.id) +
-    //            coef * coef * coef * string_hash(rec.title) +
-    //                   coef * coef * string_hash(rec.user) +
-    //                          coef * int_hash(rec.timestamp) +
-    //                                 int_hash(rec.karma)
-    // );
-    return string_hash(rec.id);
+    return string_hash(rec.id) * coef;
   }
 };
 
@@ -57,13 +47,27 @@ struct HashRecord {
 class Database {
 public:
   using data_iter = list<Record>::iterator;
-  
   struct SecondaryIndex {
       data_iter list_iter;
       multimap<int, data_iter>::iterator ts_iter; 
       multimap<int, data_iter>::iterator karma_iter;
       multimap<string, data_iter>::iterator user_iter;
   };
+
+  bool secSize(size_t n) {
+    vector<size_t> s;
+    s.push_back(data.size());
+    s.push_back(karma_data.size());
+    s.push_back(id_data.size());
+    s.push_back(timestamp_data.size());
+    s.push_back(user_data.size());
+
+    for (auto& i : s) {
+      if (i != n) return false;
+    }
+
+    return true;
+  }
 
   bool Put(const Record& record) {
     if (id_data.find(record.id) != id_data.end()) {
@@ -99,12 +103,18 @@ public:
     karma_data.erase(res->second.karma_iter);
     user_data.erase(res->second.user_iter);
     data.erase(res->second.list_iter);
-
-    //delete other secondary index contatiners
     id_data.erase(res);
 
     return true;
   }
+  // template <typename Iterator, typename Callback> 
+  // void RangeBy(Itertor range_begin, Iterator range_end, Callback callback) const{
+  //   for (auto cur = range_begin; cur != range_end; ++cur) {
+  //     if (callback(*(cur->second)) != true) {
+  //       break;
+  //     };
+  //   }
+  // }
 
   template <typename Callback>
   void RangeByTimestamp(int low, int high, Callback callback) const {
@@ -130,16 +140,17 @@ public:
       }
   }
 
+
   template <typename Callback>
   void AllByUser(const string& user, Callback callback) const {
     auto range_begin = user_data.lower_bound(user);
     auto range_end = user_data.end();
-
-    for (auto cur = range_begin; cur != range_end; ++cur) {
-      if (callback(*(cur->second)) != true) {
-        break;
-      };
-    }
+    for (auto cur = range_begin; cur != range_end, cur->second->user == user; ++cur) {
+          if (callback(*(cur->second)) != true) {
+            break;
+          }
+      }
+    
   }
 
 private: 
@@ -199,13 +210,10 @@ void TestGetById() {
 void TestRecordEquality() {
   Record r1("one", "two", "tree", 1, 2);
   Record r2("one", "two", "tree", 1, 2);
-
   ASSERT(r1 == r2);
 
-  Record r3("one", "two", "tree", 1, 2);
   Record r4("six", "five", "four", 6, 5);
-
-  ASSERT(!(r3 == r4));
+  ASSERT(!(r2 == r4));
 }
 
 void TestRangeBoundaries() {
@@ -223,6 +231,33 @@ void TestRangeBoundaries() {
   });
 
   ASSERT_EQUAL(2, count);
+}
+
+void TestSecondaryContainersSize() {
+  Database db;
+
+  Record r1 {"1", "title", "user", 1, 1};
+  Record r2 {"2", "title", "user", 1, 1};
+  Record r3 {"3", "title", "user", 1, 1};
+  Record r4 {"4", "title", "user", 1, 1};
+  Record r5 {"5", "title", "user", 1, 1};
+  Record r6 {"6", "title", "user", 1, 1};
+
+  db.Put(r1);
+  db.Put(r2);
+  db.Put(r3);
+  db.Put(r4);
+  db.Put(r5);
+  db.Put(r6);
+  ASSERT(db.secSize(6));
+  
+  db.Erase(r1.id);
+  db.Erase(r2.id);
+  db.Erase(r3.id);
+  db.Erase(r4.id);
+  db.Erase(r5.id);
+  db.Erase(r6.id);
+  ASSERT(db.secSize(0));
 }
 
 void TestSameUser() {
@@ -254,6 +289,7 @@ void TestReplacement() {
 
 int main() {
   TestRunner tr;
+  
   RUN_TEST(tr, TestRecordEquality);
   RUN_TEST(tr, TestPut);
   RUN_TEST(tr, TestGetById);
@@ -261,5 +297,7 @@ int main() {
   RUN_TEST(tr, TestSameUser);
   RUN_TEST(tr, TestRangeBoundaries);
   RUN_TEST(tr, TestReplacement);
+  RUN_TEST(tr, TestSecondaryContainersSize);
+
   return 0;
 }
