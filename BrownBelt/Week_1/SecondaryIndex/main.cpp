@@ -1,8 +1,7 @@
 #include "testSI.h"
 
-int main() {
-
+int main() {  
   runTests();
-  
+
   return 0;
 }
