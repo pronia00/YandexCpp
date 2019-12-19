@@ -34,5 +34,3 @@ bool Database::Put(const Record& record) {
 
     return true;
   }
-
-
