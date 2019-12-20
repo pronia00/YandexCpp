@@ -22,38 +22,20 @@ size_t Document::SectionCount() const {
     return sections.size();
 }
 
-pair<string, string> Split(string_view line, char by) {
-  size_t pos = line.find(by);
-  string_view left = line.substr(0, pos);
-
-  if (pos < line.size() && pos + 1 < line.size()) {
-    return {string(left), string(line.substr(pos + 1))};
-  } else {
-    return {string(left), string()};
-  }
-}
-
-string_view Lstrip(string_view line) {
-  while (!line.empty() && isspace(line[0])) {
-    line.remove_prefix(1);
-  }
-  return line;
-}
-
 Document Load(istream& input) {
     Document doc;
     Section* section;
     for (string line; getline(input, line); ) {
-        line = Lstrip(line);
-        if (line[0] == '[') {
-            //cout << line[0] << endl;
-            section =
-             &doc.AddSection(line.substr(1, line.size() - 2));
-             continue;
-        }
-        auto [name, value] = Split(line, '=');
-        if (!name.empty() && !value.empty()) {
-            section->insert({move(name), move(value)});
+        if (!line.empty()) {
+            if (line[0] == '[') {
+                //cout << line[0] << endl;
+                section =
+                &doc.AddSection(line.substr(1, line.size() - 2));
+            }
+            else {
+                size_t eq_pos = line.find('=');
+                section->insert({line.substr(0, eq_pos), line.substr(eq_pos + 1)});
+            }
         }
     }
     return doc;

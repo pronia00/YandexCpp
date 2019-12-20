@@ -13,7 +13,7 @@ void TestLoadIni() {
     sport=12000
     travel=23400
     clothes=5200
-
+    
     [august]
     food=3250
     sport=10000
