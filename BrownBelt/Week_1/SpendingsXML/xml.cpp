@@ -4,6 +4,7 @@
 #include <iostream>
 using namespace std;
 
+// extract one word from line
 pair<string_view, string_view> Split(string_view line, char by) {
   size_t pos = line.find(by);
   string_view left = line.substr(0, pos);
@@ -15,6 +16,7 @@ pair<string_view, string_view> Split(string_view line, char by) {
   }
 }
 
+//remove space from left side
 string_view Lstrip(string_view line) {
   while (!line.empty() && isspace(line[0])) {
     line.remove_prefix(1);
@@ -22,6 +24,7 @@ string_view Lstrip(string_view line) {
   return line;
 }
 
+//remove quotes is exists
 string_view Unquote(string_view value) {
   if (!value.empty() && value.front() == '"') {
     value.remove_prefix(1);
@@ -36,17 +39,28 @@ Node LoadNode(istream& input) {
   string root_name;
   getline(input, root_name);
 
+  //expract root name 
   Node root(root_name.substr(1, root_name.size() - 2), {});
+  
+  // read line, remove space from left, check is "/"
   for (string line; getline(input, line) && Lstrip(line)[1] != '/'; ) {
+    //split line into <node_name> and <attributs>
     auto [node_name, attrs] = Split(Lstrip(line), ' ');
+    //cut attributes up to the closing tag
     attrs = Split(attrs, '>').first;
+
     unordered_map<string, string> node_attrs;
+    // extracting and filling elements into node_attrs (hash_table)
     while (!attrs.empty()) {
+      // extract first attribute into <head>, and what left is into <tail>
       auto [head, tail] = Split(attrs, ' ');
+      // split <amount="1150"> into <amount> and <1150>
       auto [name, value] = Split(head, '=');
+      // insert name and value into hash_table
       if (!name.empty() && !value.empty()) {
         node_attrs[string(Unquote(name))] = string(Unquote(value));
       }
+      // removing inserted name & value from string
       attrs = tail;
     }
 

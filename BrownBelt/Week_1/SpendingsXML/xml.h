@@ -11,7 +11,7 @@ using namespace std;
 class Node {
 public:
   Node(string name, unordered_map<string, string> attrs);
-
+    
   const vector<Node>& Children() const;
   void AddChild(Node node);
   string_view Name() const;
@@ -37,9 +37,7 @@ private:
 
 Document Load(istream& input);
 
-
-
-
+// transform value from stirng into T type
 template <typename T>
 inline T Node::AttributeValue(const string& name) const {
   istringstream attr_input(attrs.at(name));
