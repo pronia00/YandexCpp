@@ -14,7 +14,7 @@ public:
     
   const vector<Node>& Children() const;
   void AddChild(Node node);
-  string_view Name() const;
+  std::string_view Name() const;
 
   template <typename T>
   T AttributeValue(const string& name) const;

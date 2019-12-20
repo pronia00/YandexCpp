@@ -5,6 +5,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <string_view>
+
 using namespace std;
 
 struct Spending {
@@ -42,7 +44,17 @@ string MostExpensiveCategory(
 }
 
 vector<Spending> LoadFromXml(istream& input) {
-  // Ð ÐµÐ°Ð»Ð¸Ð·ÑƒÐ¹Ñ‚Ðµ ÑÑ‚Ñƒ Ñ„ÑƒÐ½ÐºÑ†Ð¸ÑŽ Ñ Ð¿Ð¾Ð¼Ð¾Ñ‰ÑŒÑŽ Ð±Ð¸Ð±Ð»Ð¸Ð¾Ñ‚ÐµÐºÐ¸ xml.h
+  Document doc = Load(input);
+  const Node& root = doc.GetRoot();
+
+  vector<Spending> spendings;
+  for (const auto& child : root.Children()) {
+    spendings.push_back({
+      child.AttributeValue<string>("category"),
+      child.AttributeValue<int>("amount")
+    });
+  }
+  return spendings;
 }
 
 void TestLoadFromXml() {

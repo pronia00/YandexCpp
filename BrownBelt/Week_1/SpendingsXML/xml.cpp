@@ -1,11 +1,11 @@
 #include "xml.h"
 
-#include <string_view>
 #include <iostream>
-using namespace std;
+#include <string_view>
 
+using namespace std;
 // extract one word from line
-pair<string_view, string_view> Split(string_view line, char by) {
+pair<std::string_view, string_view> Split(string_view line, char by) {
   size_t pos = line.find(by);
   string_view left = line.substr(0, pos);
 
