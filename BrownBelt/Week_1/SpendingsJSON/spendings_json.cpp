@@ -1,5 +1,5 @@
-#include "json.h"
 #include "test_runner.h"
+#include "json.h"
 
 #include <algorithm>
 #include <iostream>
@@ -42,7 +42,15 @@ string MostExpensiveCategory(
 }
 
 vector<Spending> LoadFromJson(istream& input) {
-  // Ð ÐµÐ°Ð»Ð¸Ð·ÑƒÐ¹Ñ‚Ðµ ÑÑ‚Ñƒ Ñ„ÑƒÐ½ÐºÑ†Ð¸ÑŽ Ñ Ð¿Ð¾Ð¼Ð¾Ñ‰ÑŒÑŽ Ð±Ð¸Ð±Ð»Ð¸Ð¾Ñ‚ÐµÐºÐ¸ json.h
+    Document doc = Load(input);
+    vector<Spending> result;
+    for (const Node& node : doc.GetRoot().AsArray()) {
+        result.push_back({
+            node.AsMap().at("category").AsString(),
+            node.AsMap().at("amount").AsInt()
+        });
+    }
+    return result;
 }
 
 void TestLoadFromJson() {
@@ -98,4 +106,4 @@ int main() {
   TestRunner tr;
   RUN_TEST(tr, TestJsonLibrary);
   RUN_TEST(tr, TestLoadFromJson);
-}ss
+}
