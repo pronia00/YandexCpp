@@ -65,6 +65,7 @@ void TestLoadFromJson() {
 
   const vector<Spending> spendings = LoadFromJson(json_input);
 
+
   const vector<Spending> expected = {
     {"food", 2500},
     {"transport", 1150},
@@ -77,8 +78,6 @@ void TestLoadFromJson() {
 }
 
 void TestJsonLibrary() {
-  // Ð¢ÐµÑÑ‚ Ð´ÐµÐ¼Ð¾Ð½ÑÑ‚Ñ€Ð¸Ñ€ÑƒÐµÑ‚, ÐºÐ°Ðº Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÑŒÑÑ Ð±Ð¸Ð±Ð»Ð¸Ð¾Ñ‚ÐµÐºÐ¾Ð¹ Ð¸Ð· Ñ„Ð°Ð¹Ð»Ð° json.h
-
   istringstream json_input(R"([
     {"amount": 2500, "category": "food"},
     {"amount": 1150, "category": "transport"},
