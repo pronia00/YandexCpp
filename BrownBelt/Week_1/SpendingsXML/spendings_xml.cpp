@@ -45,10 +45,8 @@ string MostExpensiveCategory(
 
 vector<Spending> LoadFromXml(istream& input) {
   Document doc = Load(input);
-  const Node& root = doc.GetRoot();
-
   vector<Spending> spendings;
-  for (const auto& child : root.Children()) {
+  for (const auto& child : doc.GetRoot().Children()) {
     spendings.push_back({
       child.AttributeValue<string>("category"),
       child.AttributeValue<int>("amount")
