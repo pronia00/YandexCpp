@@ -15,7 +15,9 @@ struct StatsAggregator {
   virtual void PrintValue(std::ostream& out) const = 0;
 };
 
-class SumStatsAggregator : public StatsAggregator {
+namespace StatsAggregators {
+
+class Sum : public StatsAggregator {
 public:
   void Process(int value) override;
   void PrintValue(std::ostream& out) const override;
@@ -24,7 +26,7 @@ private:
   int sum = 0;
 };
 
-class MinStatsAggregator : public StatsAggregator {
+class Min : public StatsAggregator {
 public:
   void Process(int value) override;
   void PrintValue(std::ostream& out) const override;
@@ -36,7 +38,7 @@ private:
   std::optional<int> current_min;
 };
 
-class MaxStatsAggregator : public StatsAggregator {
+class Max : public StatsAggregator {
 public:
   void Process(int value) override;
   void PrintValue(std::ostream& out) const override;
@@ -45,7 +47,7 @@ private:
   std::optional<int> current_max;
 };
 
-class AverageStatsAggregator : public StatsAggregator {
+class Average : public StatsAggregator {
 public:
   void Process(int value) override;
   void PrintValue(std::ostream& out) const override;
@@ -55,7 +57,7 @@ private:
   int total = 0;
 };
 
-class ModeStatsAggregator : public StatsAggregator {
+class Mode : public StatsAggregator {
 public:
   void Process(int value) override;
   void PrintValue(std::ostream& out) const override;
@@ -65,7 +67,7 @@ private:
   std::optional<int> mode;
 };
 
-class CompositeStatsAggregator : public StatsAggregator {
+class Composite : public StatsAggregator {
 public:
   void Process(int value) override;
   void PrintValue(std::ostream& output) const override;
@@ -76,9 +78,11 @@ private:
   std::vector<std::unique_ptr<StatsAggregator>> aggregators;
 };
 
-void TestSumStatsAggregator();
-void TestMinStatsAggregator();
-void TestMaxStatsAggregator();
-void TestAverageStatsAggregator();
-void TestModeStatsAggregator();
-void TestCompositeStatsAggregator();
+void TestSum();
+void TestMin();
+void TestMax();
+void TestAverage();
+void TestMode();
+void TestComposite();
+
+}
