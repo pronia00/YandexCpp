@@ -10,34 +10,33 @@
 using namespace std;
 
 Json::Document XmlToJson(const Xml::Document& doc) {
-  using std::vector;
-  using std::string;
+  using namespace std;
 
   vector<Json::Node> result;
 
   for (const Xml::Node& n : doc.GetRoot().Children()) {
-    result.emplace_back(map<string, Json::Node>{
-      {"category", Json::Node{n.AttributeValue<string>("category")}},
-      {"amount", Json::Node(n.AttributeValue<string>("amount"))}
-    });
+   result.emplace_back(map<string, Json::Node>{
+     {"category", Json::Node{n.AttributeValue<string>("category")}},
+     {"amount", Json::Node(n.AttributeValue<int>("amount"))}
+   });
   }
-
   return Json::Document(Json::Node(std::move(result)));
 }
 
 Xml::Document JsonToXml(const Json::Document& doc, string root_name) {
-    using namespace Xml;
-    Node root(move(root_name), {});
-    for (const auto& n : doc.GetRoot().AsArray()) {
-        root.AddChild(Node("spend", {
+    Xml::Node root(move(root_name), {});
+    for (const Json::Node& n : doc.GetRoot().AsArray()) {
+        root.AddChild(Xml::Node("spend", {
         {"category", n.AsMap().at("category").AsString()},
-        {"amount", n.AsMap().at("amount").AsString()},
+        {"amount", std::to_string(n.AsMap().at("amount").AsInt())},
     }));
   }
-  return Document(root);
+  return Xml::Document(std::move(root));
 }
 
 void TestXmlToJson() {
+  using std::string;
+  using std::vector;
 
   Xml::Node root("july", {});
   root.AddChild({"spend", {{"category", "travel"}, {"amount", "23400"}}});
@@ -55,7 +54,7 @@ void TestXmlToJson() {
   const vector<int> expected_amount = {23400, 5000, 1150, 12000};
 
   for (size_t i = 0; i < items.size(); ++i) {
-    const map<string, Json::Node>& item = items[i].AsMap();
+    const std::map<string, Json::Node>& item = items[i].AsMap();
     const string feedback_msg = "i = " + std::to_string(i);
     AssertEqual(item.at("category").AsString(), expected_category[i], feedback_msg);
     AssertEqual(item.at("amount").AsInt(), expected_amount[i], feedback_msg);
@@ -63,29 +62,33 @@ void TestXmlToJson() {
 }
 
 void TestJsonToXml() {
-  using Json::Node;
-  using Json::Document;
+  using namespace std;
 
-  const Document json_doc{Node(vector<Node>{
-    Node(map<string, Node>{
-      {"category", Node("food")}, {"amount", Node(2500)}
-    }),
-    Node(map<string, Node>{
-      {"category", Node("transport")}, {"amount", Node(1150)}
-    }),
-    Node(map<string, Node>{
-      {"category", Node("restaurants")}, {"amount", Node(5780)}
-    }),
-    Node(map<string, Node>{
-      {"category", Node("clothes")}, {"amount", Node(7500)}
-    }),
-    Node(map<string, Node>{
-      {"category", Node("travel")}, {"amount", Node(23740)}
-    }),
-    Node(map<string, Node>{
-      {"category", Node("sport")}, {"amount", Node(12000)}
-    }),
-  })};
+  vector<Json::Node> spendings;
+  {
+    using Json::Node;
+    spendings = {
+      Node(map<string, Node>{
+        {"category", Node("food")}, {"amount", Node(2500)}
+      }),
+      Node(map<string, Node>{
+        {"category", Node("transport")}, {"amount", Node(1150)}
+      }),
+      Node(map<string, Node>{
+        {"category", Node("restaurants")}, {"amount", Node(5780)}
+      }),
+      Node(map<string, Node>{
+        {"category", Node("clothes")}, {"amount", Node(7500)}
+      }),
+      Node(map<string, Node>{
+        {"category", Node("travel")}, {"amount", Node(23740)}
+      }),
+      Node(map<string, Node>{
+        {"category", Node("sport")}, {"amount", Node(12000)}
+      }),
+    };
+  }
+  const Json::Document json_doc{Json::Node(std::move(spendings))};
 
   const string root_name = "month";
   const auto xml_doc = JsonToXml(json_doc, root_name);
@@ -101,10 +104,8 @@ void TestJsonToXml() {
   const vector<int> expected_amount = {2500, 1150, 5780, 7500, 23740, 12000};
 
   for (size_t i = 0; i < children.size(); ++i) {
-    using Json::Node;
-
-    const string feedback_msg = "i = " + std::to_string(i);
-    const Xml::Node& c = children[i];
+    const string feedback_msg = "i = " + to_string(i);
+    const auto& c = children[i];
     AssertEqual(c.Name(), "spend", feedback_msg);
     AssertEqual(c.AttributeValue<string>("category"), expected_category[i], feedback_msg);
     AssertEqual(c.AttributeValue<int>("amount"), expected_amount[i], feedback_msg);
