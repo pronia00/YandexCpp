@@ -9,11 +9,11 @@
 #include <unordered_map>
 #include <functional>
 using namespace std;
-using namespace StatsAggregators;
 
 void TestAll();
 
 unique_ptr<StatsAggregator> ReadAggregators(istream& input) {
+  using namespace StatsAggregators;
   const unordered_map<string, std::function<unique_ptr<StatsAggregator>()>> known_builders = {
     {"sum", [] { return make_unique<Sum>(); }},
     {"min", [] { return make_unique<Min>(); }},
@@ -51,10 +51,10 @@ int main() {
 
 void TestAll() {
   TestRunner tr;
-  RUN_TEST(tr, TestSum);
-  RUN_TEST(tr, TestMin);
-  RUN_TEST(tr, TestMax);
-  RUN_TEST(tr, TestAverage);
-  RUN_TEST(tr, TestMode);
-  RUN_TEST(tr, TestComposite);
+  RUN_TEST(tr, StatsAggregators::TestSum);
+  RUN_TEST(tr, StatsAggregators::TestMin);
+  RUN_TEST(tr, StatsAggregators::TestMax);
+  RUN_TEST(tr, StatsAggregators::TestAverage);
+  RUN_TEST(tr, StatsAggregators::TestMode);
+  RUN_TEST(tr, StatsAggregators::TestComposite);
 }

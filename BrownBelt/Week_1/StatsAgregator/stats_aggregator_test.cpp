@@ -20,7 +20,7 @@ void TestSum() {
   aggr.Process(8);
   aggr.Process(-1);
   aggr.Process(16);
-
+    
   ASSERT_EQUAL(PrintedValue(aggr), "Sum is 26");
 }
 
