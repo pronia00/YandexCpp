@@ -37,7 +37,7 @@ Xml::Document JsonToXml(const Json::Document& doc, string root_name) {
 void TestXmlToJson() {
   using std::string;
   using std::vector;
-
+  
   Xml::Node root("july", {});
   root.AddChild({"spend", {{"category", "travel"}, {"amount", "23400"}}});
   root.AddChild({"spend", {{"category", "food"}, {"amount", "5000"}}});
