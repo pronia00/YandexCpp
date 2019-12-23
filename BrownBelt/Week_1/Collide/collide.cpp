@@ -11,29 +11,75 @@ using namespace std;
 // Определите классы Unit, Building, Tower и Fence так, чтобы они наследовались от
 // GameObject и реализовывали его интерфейс.
 
-class Unit {
+class Unit final: public Collider<Unit> {
 public:
-  explicit Unit(geo2d::Point position);
+  explicit Unit(geo2d::Point position) 
+     : _position(position) 
+  {};
+
+  geo2d::Point getPosition() const { return _position; }
+
+  bool CollideWith(const Unit& that) const override;
+  bool CollideWith(const Building& that) const override;
+  bool CollideWith(const Tower& that) const override;
+  bool CollideWith(const Fence& that) const override;
+
+private: 
+  geo2d::Point _position;
 };
 
-class Building {
+class Building final : public Collider<Building> {
 public:
-  explicit Building(geo2d::Rectangle geometry);
+  explicit Building(geo2d::Rectangle geometry) 
+    :_geometry(geometry)
+  {}
+  geo2d::Rectangle getGeometry() const { return _geometry; }
+
+  bool CollideWith(const Unit& that) const override;
+  bool CollideWith(const Building& that) const override;
+  bool CollideWith(const Tower& that) const override;
+  bool CollideWith(const Fence& that) const override;
+
+  private: 
+    geo2d::Rectangle _geometry ;
 };
 
-class Tower {
+class Tower final: public Collider<Tower>{
 public:
-  explicit Tower(geo2d::Circle geometry);
+  explicit Tower(geo2d::Circle geometry)
+    :_geometry(geometry)
+  {}
+  geo2d::Circle getGeometry() const { return _geometry; }
+  
+  bool CollideWith(const Unit& that) const override;
+  bool CollideWith(const Building& that) const override;
+  bool CollideWith(const Tower& that) const override;
+  bool CollideWith(const Fence& that) const override;
+
+  private: 
+    geo2d::Circle _geometry ;
 };
 
-class Fence {
+class Fence final : public Collider<Fence>{
 public:
-  explicit Fence(geo2d::Segment geometry);
+  explicit Fence(geo2d::Segment geometry) 
+  : _geometry(geometry) 
+  {};
+
+  geo2d::Segment getSegment() const { return _geometry; }
+  bool CollideWith(const Unit& that) const override;
+  bool CollideWith(const Building& that) const override;
+  bool CollideWith(const Tower& that) const override;
+  bool CollideWith(const Fence& that) const override;
+
+  private: 
+    geo2d::Segment _geometry;
 };
 
 // Реализуйте функцию Collide из файла GameObject.h
 
 bool Collide(const GameObject& first, const GameObject& second) {
+    return first.Collide(second);
 }
 
 void TestAddingNewObjectOnMap() {

@@ -79,7 +79,7 @@ bool Collide(Rectangle r1, Rectangle r2) {
   auto min_right = std::min(r1.Right(), r2.Right());
   auto max_bottom = std::max(r1.Bottom(), r2.Bottom());
   auto min_top = std::min(r1.Top(), r2.Top());
-  return min_right >= max_left && min_top >= max_bottom;
+  return min_right >= max_left && min_top >= max_bottom; 
 }
 
 bool Collide(Rectangle r, Circle c) {
