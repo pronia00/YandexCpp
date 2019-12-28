@@ -2,6 +2,7 @@
 #include <iterator> 
 #include <string>
 #include <typeinfo>
+#include <utility>
 
 using namespace std;
 
@@ -31,7 +32,7 @@ template <class T> struct hasSerialize
     // Note that sink-hole must be templated too as we are testing test<T>(0).
     // If the method serialize isn't available, we will end up in this method.
     template <typename> static no& test(...) { /* dark matter */ }
-
+    
     // The constant used as a return value for the test.
     // The test is actually done here, thanks to the sizeof compile-time evaluation.
     static const bool value = sizeof(test<T>(0)) == sizeof(yes);
@@ -43,10 +44,55 @@ struct S {
     }
 };
     
+template <bool B, class T = void> 
+struct _enable_if {};
+
+template<class T>
+struct _enable_if<true, T> {typedef T type; };
+
+
+template <class T> typename _enable_if<hasSerialize<T>::value, std::string>::type serialize(const T& obj)
+{
+    return obj.serialize();
+}
+
+template <class T> typename _enable_if<!hasSerialize<T>::value, std::string>::type serialize(const T& obj) 
+{
+    return to_string(obj);
+}
+
+template <typename T> 
+struct decTest {
+    T type;
+};
+struct decvTest {
+    decvTest(const decvTest&);
+    int foo() const { return 1;}
+};
+
 int main() {
-   
-    std::cout << hasSerialize<int>::value << std::endl;
-    std::cout << hasSerialize<bool>::value << std::endl;
-    std::cout << hasSerialize<S>::value << std::endl;
+    std::string s;    
+    decltype(s) test = "test";
+    std::cout << test << std::endl; 
+
+    double d;
+    decltype(d) testd = 10;
+    std::cout << testd << std::endl;
+
+    
+    decltype(decTest<std::string>().type) testStruct = "testStruct";
+    std::cout << testStruct << std::endl;
+
+    decltype(std::declval<decvTest>().foo()) testDecv = 10;
+    std::cout << testDecv << std::endl;
+
+        
+    // _enable_if<true, int>::type t1;
+    // _enable_if<hasSerialize<S>::value, int>::type t2;
+    // _enable_if<false, int>::type t3;
+    // _enable_if<hasSerialize<A>::value, int>::type t4;
+    // std::cout << hasSerialize<int>::value << std::endl;
+    // std::cout << hasSerialize<bool>::value << std::endl;
+    // std::cout << hasSerialize<S>::value << std::endl;
     return 0;
 }
