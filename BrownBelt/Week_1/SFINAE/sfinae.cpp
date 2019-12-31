@@ -1,98 +1,140 @@
 #include <iostream>
-#include <iterator> 
-#include <string>
-#include <typeinfo>
-#include <utility>
 
-using namespace std;
+struct A {};
 
-template <class T> struct hasSerialize
+std::string to_string(const A&)
 {
-    // For the compile time comparison.
-    typedef char yes[1];
-    typedef yes no[2];
+    return "I am a A!";
+}
 
-    // This helper struct permits us to check that serialize is truly a method.
-    // The second argument must be of the type of the first.
-    // For instance reallyHas<int, 10> would be substituted by reallyHas<int, int 10> and works!
-    // reallyHas<int, &C::serialize> would be substituted by reallyHas<int, int &C::serialize> and fail!
-    // Note: It only works with integral constants and pointers (so function pointers work).
-    // In our case we check that &C::serialize has the same signature as the first argument!
-    // reallyHas<std::string (C::*)(), &C::serialize> should be substituted by 
-    // reallyHas<std::string (C::*)(), std::string (C::*)() &C::serialize> and work!
-    template <typename U, U u> struct reallyHas;
-
-    // Two overloads for yes: one for the signature of a normal method, one is for the signature of a const method.
-    // We accept a pointer to our helper struct, in order to avoid to instantiate a real instance of this type.
-    // std::string (C::*)() is function pointer declaration.
-    template <typename C> static yes& test(reallyHas<int (C::*)(), &C::serialize>* /*unused*/ ) { }
-    template <typename C> static yes& test(reallyHas<int (C::*)() const, &C::serialize>* /*unused*/) {}
-
-    // The famous C++ sink-hole.
-    // Note that sink-hole must be templated too as we are testing test<T>(0).
-    // If the method serialize isn't available, we will end up in this method.
-    template <typename> static no& test(...) { /* dark matter */ }
-    
-    // The constant used as a return value for the test.
-    // The test is actually done here, thanks to the sizeof compile-time evaluation.
-    static const bool value = sizeof(test<T>(0)) == sizeof(yes);
-};
-
-struct S {
-    int serialize() {
-        return {};
+// Type B with a serialize method.
+struct B
+{
+    std::string serialize() const
+    {
+        return "I am a B!";
     }
 };
-    
-template <bool B, class T = void> 
-struct _enable_if {};
-
-template<class T>
-struct _enable_if<true, T> {typedef T type; };
 
 
-template <class T> typename _enable_if<hasSerialize<T>::value, std::string>::type serialize(const T& obj)
+
+// Type C with a "wrong" serialize member (not a method) and a to_string overload.
+struct C
+{
+    std::string serialize;
+};
+
+std::string to_string(const C&)
+{
+    return "I am a C!";
+}
+
+struct D : A
+{
+    std::string serialize() const
+    {
+        return "I am a D!";
+    }
+};
+
+struct E
+{
+    struct Functor
+    {
+        std::string operator()(){
+            return "I am a E!";
+        }
+    };
+
+    Functor serialize;
+};
+
+// Primary template, inherit from std::false_type.
+// ::value will return false.
+// Note: the second unused template parameter is set to default as std::string!!!
+
+
+auto l1 = [](B& b) { return b.serialize(); };
+auto l2 = [](B& b) -> std::string { return b.serialize(); };
+auto l3 = [](B& b) -> decltype(b.serialize()) { return b.serialize(); };
+
+auto l4 = [](int a, int b) { return a + b; };
+struct l4UnnamedType
+{
+    int operator() (int a, int b) {
+        return a + b;
+    }
+};
+
+
+// lambda l5 is equivalent to struct l5UnnamedType
+auto l5 = [](auto &t) -> decltype(t.serialize()) { return t.serialize(); };
+struct l5UnnamedType
+{
+    template <typename T> 
+    auto operator() (T& t) -> decltype(t.serialize())  
+    {
+        return t.serialize(); 
+    }
+};
+
+
+template <typename UnnamedType>  struct container
+{
+private: 
+
+    template <typename Param> constexpr auto TestValidity(int ) 
+    -> decltype(std::declval<UnnamedType>()(std::declval<Param>()), std::true_type())
+    {
+        return std::true_type();
+    }
+
+    template <typaname Param> constexpr auto TestValidity(...) 
+    {
+        return std::false_type();
+    }
+
+public: 
+
+    template <typename Param> constexpr auto operator()(const Param& p) {
+        return TestValidity<Param>(int());
+    }
+
+};
+
+template <typename UnnamedType> constexpr auto is_valid(const UnnamedType& t) 
+{
+    return container<UnnamedType>();    
+}
+
+auto hasSerialize = is_valid([](auto&& x) -> decltype(x.serialize()) {});
+auto test = is_valid([] const auto& t) -> decltype(t.serialize()) {});
+
+template <class T> auto serialize(T& obj) 
+-> typename std::enable_if<decltype(hasSerialize(obj))::value, std::string>::type
 {
     return obj.serialize();
 }
 
-template <class T> typename _enable_if<!hasSerialize<T>::value, std::string>::type serialize(const T& obj) 
+template <class T> auto serialize(T& obj) 
+-> typename std::enable_if<!decltype(hasSerialize(obj))::value, std::string>::type
 {
     return to_string(obj);
 }
 
-template <typename T> 
-struct decTest {
-    T type;
-};
-struct decvTest {
-    decvTest(const decvTest&);
-    int foo() const { return 1;}
-};
-
 int main() {
-    std::string s;    
-    decltype(s) test = "test";
-    std::cout << test << std::endl; 
+    // A a;
+    // B b;
+    // C c;
+    // D d;
+    // E e;
 
-    double d;
-    decltype(d) testd = 10;
-    std::cout << testd << std::endl;
+    // std::cout << serialize(a) << std::endl;
+    // std::cout << serialize(b) << std::endl;
+    // std::cout << serialize(c) << std::endl;
+    // std::cout << serialize(d) << std::endl;
+    // std::cout << serialize(e) << std::endl;
+    // std::cout << serialize(f) << std::endl;
 
-    
-    decltype(decTest<std::string>().type) testStruct = "testStruct";
-    std::cout << testStruct << std::endl;
-
-    decltype(std::declval<decvTest>().foo()) testDecv = 10;
-    std::cout << testDecv << std::endl;
-
-        
-    // _enable_if<true, int>::type t1;
-    // _enable_if<hasSerialize<S>::value, int>::type t2;
-    // _enable_if<false, int>::type t3;
-    // _enable_if<hasSerialize<A>::value, int>::type t4;
-    // std::cout << hasSerialize<int>::value << std::endl;
-    // std::cout << hasSerialize<bool>::value << std::endl;
-    // std::cout << hasSerialize<S>::value << std::endl;
     return 0;
 }
