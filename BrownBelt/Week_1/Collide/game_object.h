@@ -16,10 +16,5 @@ struct GameObject {
 };
 
 
-template <typename T> 
-struct Collider : GameObject {
-  bool Collide(const GameObject& that) const final {
-    return that.CollideWith(static_cast<const T&>(*this));
-  }
-};
+
 bool Collide(const GameObject& first, const GameObject& second);

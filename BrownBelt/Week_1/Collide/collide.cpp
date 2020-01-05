@@ -8,9 +8,19 @@
 
 using namespace std;
 
+template <typename T> 
+struct Collider : GameObject {
+  bool Collide(const GameObject& that) const final {
+    return that.CollideWith(static_cast<const T&>(*this));
+  }
+};
+
 // Определите классы Unit, Building, Tower и Fence так, чтобы они наследовались от
 // GameObject и реализовывали его интерфейс.
-
+class Unit; 
+class Building;
+class Tower;
+class Fence;
 class Unit final: public Collider<Unit> {
 public:
   explicit Unit(geo2d::Point position) 
@@ -36,7 +46,7 @@ public:
   geo2d::Rectangle getGeometry() const { return _geometry; }
 
   bool CollideWith(const Unit& that) const override;
-  bool CollideWith(const Building& that) const override;
+  bool CollideWith(const Building& that) const override ;
   bool CollideWith(const Tower& that) const override;
   bool CollideWith(const Fence& that) const override;
 
@@ -68,7 +78,7 @@ public:
 
   geo2d::Segment getSegment() const { return _geometry; }
   bool CollideWith(const Unit& that) const override;
-  bool CollideWith(const Building& that) const override;
+  bool CollideWith(const Building& that) const override ;
   bool CollideWith(const Tower& that) const override;
   bool CollideWith(const Fence& that) const override;
 
@@ -76,11 +86,67 @@ public:
     geo2d::Segment _geometry;
 };
 
-// Реализуйте функцию Collide из файла GameObject.h
 
+  bool Unit::CollideWith(const Unit& that) const {
+    return geo2d::Collide(_position, that.getPosition());
+  }
+  bool Unit::CollideWith(const Building& that) const {
+    return geo2d::Collide(_position, that.getGeometry());
+  }
+  bool Unit::CollideWith(const Tower& that) const {
+    return geo2d::Collide(_position, that.getGeometry());
+  }
+  bool Unit::CollideWith(const Fence& that) const {
+    return geo2d::Collide(_position, that.getSegment());;
+  }
+
+  bool Building::CollideWith(const Unit& that) const {
+    return geo2d::Collide(_geometry, that.getPosition());
+  }
+  bool Building::CollideWith(const Building& that) const {
+    return geo2d::Collide(_geometry, that.getGeometry());
+  }
+  bool Building::CollideWith(const Tower& that) const {
+    return geo2d::Collide(_geometry, that.getGeometry());
+  }
+  bool Building::CollideWith(const Fence& that) const {
+    return geo2d::Collide(_geometry, that.getSegment());
+  }
+
+  bool Tower::CollideWith(const Unit& that) const {
+    return geo2d::Collide(_geometry, that.getPosition());
+  }
+  bool Tower::CollideWith(const Building& that) const {
+    return geo2d::Collide(_geometry, that.getGeometry());
+  }
+  bool Tower::CollideWith(const Tower& that) const  {
+    return geo2d::Collide(_geometry, that.getGeometry());
+  }
+  bool Tower::CollideWith(const Fence& that) const  {
+    return geo2d::Collide(_geometry, that.getSegment());
+  }
+
+  bool Fence::CollideWith(const Unit& that) const {
+    return geo2d::Collide(_geometry, that.getPosition());
+  }
+  bool Fence::CollideWith(const Building& that) const {
+    return geo2d::Collide(_geometry, that.getGeometry());
+  }
+  bool Fence::CollideWith(const Tower& that) const {
+    return geo2d::Collide(_geometry, that.getGeometry());
+  }
+  bool Fence::CollideWith(const Fence& that) const {
+    return geo2d::Collide(_geometry, that.getSegment());
+  }
+
+// Реализуйте функцию Collide из файла GameObject.h
 bool Collide(const GameObject& first, const GameObject& second) {
     return first.Collide(second);
 }
+
+
+
+
 
 void TestAddingNewObjectOnMap() {
   // Юнит-тест моделирует ситуацию, когда на игровой карте уже есть какие-то объекты,
@@ -111,6 +177,8 @@ void TestAddingNewObjectOnMap() {
       );
     }
   }
+
+  
 
   auto new_warehouse = make_shared<Building>(Rectangle{{4, 3}, {9, 6}});
   ASSERT(!Collide(*new_warehouse, *game_map[0]));
