@@ -30,17 +30,10 @@ public:
       _headers.insert({move(name), move(value)});
       return *this;
   }
-
+  // "HTTP/1.1 200 OK\nContent-Length: 14\nContent-Length: 6\n\nanother_string"
+  // "HTTP/1.1 200 OK\nContent-Length: 14\n\nanother_string"
   HttpResponse& SetContent(string a_content) noexcept {
       _content = move(a_content);
-      if (_content != "") {
-        _headers.insert(
-          {
-            "Content-Length", 
-             to_string(_content.size()) 
-          }
-        );
-      }
       return *this;
   }
 
@@ -61,11 +54,16 @@ public:
           output << header << ": " << value << "\n";
       }
       
+      if (resp._content != "") {
+          output << "Content-Length: " 
+                 << to_string(resp._content.size()) << "\n";
+      }
+
       // output content
       output << "\n";
       if (resp._content != "") 
       {
-          output << resp._content << "\n";
+          output << resp._content;
       }
 
       return output;
@@ -81,8 +79,8 @@ private:
 };
 
 const map<HttpCode, string> HttpResponse::_code_s {
-    { HttpCode::Ok, "Ok"}, 
-    { HttpCode::NotFound, "Not Found"},
+    { HttpCode::Ok, "OK"}, 
+    { HttpCode::NotFound, "Not found"},
     { HttpCode::Found, "Found"}
 };
 
@@ -110,7 +108,6 @@ T FromString(const string& s) {
   is >> x;
   return x;
 }
-
 
 pair<size_t, string> ParseIdAndContent(const string& body) {
   auto [id_string, content] = SplitBy(body, " ");
