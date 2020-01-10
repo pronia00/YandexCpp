@@ -21,10 +21,9 @@ enum class HttpCode {
 
 class HttpResponse {
 public:
-  explicit HttpResponse(HttpCode code) 
-  {
-      SetCode(code);
-  }
+  explicit HttpResponse(HttpCode code) : _code(code)
+  {}
+
 
   HttpResponse& AddHeader(string name = "", string value = "") {
       _headers.insert({move(name), move(value)});
@@ -48,25 +47,13 @@ public:
       output << resp._http_version << " "
              << static_cast<int>(resp._code) << " " 
              << HttpResponse::_code_s.at(resp._code) << "\n";
-
-      // output headers
       for (const auto& [header, value] : resp._headers) {
           output << header << ": " << value << "\n";
       }
-      
-      if (resp._content != "") {
-          output << "Content-Length: " 
-                 << to_string(resp._content.size()) << "\n";
+      if (!resp._content.empty()) {
+          output << "Content-Length: " << to_string(resp._content.size()) << "\n";
       }
-
-      // output content
-      output << "\n";
-      if (resp._content != "") 
-      {
-          output << resp._content;
-      }
-
-      return output;
+      return output << "\n" << resp._content;
   }
 
 private: 
