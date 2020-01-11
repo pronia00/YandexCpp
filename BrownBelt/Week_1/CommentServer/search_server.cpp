@@ -176,6 +176,9 @@ private:
     }
   }
 
+  HttpResponse ServeChecCaptcha_Test(const HttpRequest& request) {
+    
+  }
   HttpResponse ServeUserComments(const HttpRequest& request) {
     auto user_id = FromString<size_t>(request.get_params.at("user_id"));
     string response;
