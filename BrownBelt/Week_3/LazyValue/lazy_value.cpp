@@ -10,31 +10,24 @@ template <typename T>
 class LazyValue {
 public:
   explicit LazyValue(std::function<T()> init) 
-    : _init_function(init) 
+    : _init_function(move(init)) 
     , _value(nullopt)
   {};
 
-  bool HasValue() const noexcept;
-  const T& Get() const;
+  bool HasValue() const noexcept {
+      return _value.has_value();
+  }
+  const T& Get() const {
+      if (!_value) {
+          _value = _init_function();
+      }
+      return *_value;
+  }
 
 private:
     mutable optional<T> _value;
     function<T()> _init_function;
 };
-
-template <typename T>
-bool LazyValue<T>::HasValue() const noexcept {
-    return _value.has_value();
-} 
-
-template <typename T>
-const T& LazyValue<T>::Get() const {
-    if (false == HasValue()) {
-        _value = _init_function();
-    }
-    return _value.value();
-}
-
 
 void IntTest() {
     LazyValue<int> lazy_int([] {return 42; });
