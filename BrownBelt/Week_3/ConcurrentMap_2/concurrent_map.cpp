@@ -42,9 +42,13 @@ public:
     lock_guard<mutex> guard;
     V& ref_to_value;
 
-    Access(const K& key, pair<mutex, unordered_map<K, V>>& bucket_content)
+    Access(const K& key, pair<mutex, unordered_map<K, V, Hasher>>& bucket_content)
       : guard(bucket_content.first)
       , ref_to_value(bucket_content.second[key])
+    {}
+    Access(K&& key, pair<mutex, unordered_map<K, V, Hasher>>& bucket_content)
+      : guard(bucket_content.first)
+      , ref_to_value(bucket_content.second[move(key)])
     {}
   };
 
@@ -52,7 +56,7 @@ public:
     lock_guard<mutex> guard;
     const V& ref_to_value;
 
-    ReadAccess(const K& key, pair<mutex, unordered_map<K, V>>& bucket_content)
+    ReadAccess(const K& key, pair<mutex, unordered_map<K, V, Hasher>>& bucket_content)
       : guard(bucket_content.first)
       , ref_to_value(bucket_content.second.at(key))
     {}
@@ -68,6 +72,11 @@ public:
     return {key, bucket};
   }
 
+  Access operator[](K&& key) {
+    auto& bucket = data[_index(key)];
+    return {key, bucket};
+  }
+
   ReadAccess At(const K& key) const {
     return {key, data[_index(key)] };
   }
@@ -76,8 +85,8 @@ public:
     return 0 != data[_index(key)].second.count(key);
   }
   
-  unordered_map<K, V> BuildOrdinaryMap() const {
-    unordered_map<K, V> result;
+  auto BuildOrdinaryMap() const {
+    unordered_map<K, V, Hasher> result;
     for (auto& [mtx, mapping] : data) {
       auto g = Lock(mtx);
       result.insert(begin(mapping), end(mapping));
@@ -302,7 +311,7 @@ bool operator==(Point lhs, Point rhs) {
 
 void TestUserType() {
   ConcurrentMap<Point, size_t, PointHash> point_weight(5);
-
+  
   vector<future<void>> futures;
   for (int i = 0; i < 1000; ++i) {
     futures.push_back(async([&point_weight, i] {
@@ -353,6 +362,7 @@ int main() {
   RUN_TEST(tr, TestReadAndWrite);
   RUN_TEST(tr, TestSpeedup);
   RUN_TEST(tr, TestConstAccess);
+  RUN_TEST(tr, TestHas);
   RUN_TEST(tr, TestUserType);
   
   
