@@ -1,5 +1,5 @@
 #include "test_runner.h"
-#include "profiler.h"
+#include "profile.h"
 
 #include <future>
 #include <mutex>
@@ -11,11 +11,6 @@
 #include <functional>
 using namespace std;
 
-template <typename T>
-T Abs(T x) {
-  return x < 0 ? -x : x;
-}
-
 auto Lock(mutex& m) {
   return lock_guard<mutex>{m};
 }
@@ -25,84 +20,73 @@ template <
     typename V, 
     typename Hasher = hash<K>
 > class ConcurrentMap {
-public:
-  // static_assert(
-  //   is_convertible_v<K, uint64_t>,
-  //   "ConcurrentMap supports only integer keys"
-  // );
-  // struct _hasher {
-  //   size_t operator()(const K& k) const {
-  //     const hash<K> hasher;
-  //     const size_t coef = 514'229;
 
-  //     return coef * hasher(k);
-  //   };
-  // };
-  struct Access {
-    lock_guard<mutex> guard;
+public:
+  using _map_type = unordered_map<K, V, Hasher>;
+  
+private:
+  struct _bucket {
+    _map_type data;
+    mutable mutex m;
+  };
+
+  Hasher _hasher {};
+  vector<_bucket> _buckets;
+
+  size_t _index(const K& key) const noexcept {
+    return _hasher(key) % _buckets.size();
+  }
+
+public:
+  struct WriteAccess : lock_guard<mutex> {
     V& ref_to_value;
 
-    Access(const K& key, pair<mutex, unordered_map<K, V, Hasher>>& bucket_content)
-      : guard(bucket_content.first)
-      , ref_to_value(bucket_content.second[key])
-    {}
-    Access(K&& key, pair<mutex, unordered_map<K, V, Hasher>>& bucket_content)
-      : guard(bucket_content.first)
-      , ref_to_value(bucket_content.second[move(key)])
+    WriteAccess(const K& key, _bucket& bucket_content)
+      : lock_guard(bucket_content.m)
+      , ref_to_value(bucket_content.data[key])
     {}
   };
 
-  struct ReadAccess {
-    lock_guard<mutex> guard;
+  struct ReadAccess : lock_guard<mutex> {
     const V& ref_to_value;
 
-    ReadAccess(const K& key, pair<mutex, unordered_map<K, V, Hasher>>& bucket_content)
-      : guard(bucket_content.first)
-      , ref_to_value(bucket_content.second.at(key))
+    ReadAccess(const K& key, const _bucket& bucket_content)
+      : lock_guard(bucket_content.m)
+      , ref_to_value(bucket_content.data.at(key))
     {}
   };
 
   explicit ConcurrentMap(size_t bucket_count)
-    : data(bucket_count)
-  {
-  }
+    : _buckets(bucket_count)
+  {}
 
-  Access operator[](const K& key) {
-    auto& bucket = data[_index(key)];
-    return {key, bucket};
-  }
-
-  Access operator[](K&& key) {
-    auto& bucket = data[_index(key)];
-    return {key, bucket};
+  WriteAccess operator[](const K& key) {
+    return {key, _buckets[_index(key)]};
   }
 
   ReadAccess At(const K& key) const {
-    return {key, data[_index(key)] };
+    return {key, _buckets[_index(key)]};
   }
 
   bool Has(const K& key) const {
-    return 0 != data[_index(key)].second.count(key);
+    auto& bucket = _buckets[_index(key)];
+    lock_guard g(bucket.m);
+    return 0 < bucket.data.count(key);
   }
   
-  auto BuildOrdinaryMap() const {
-    unordered_map<K, V, Hasher> result;
-    for (auto& [mtx, mapping] : data) {
-      auto g = Lock(mtx);
-      result.insert(begin(mapping), end(mapping));
+  _map_type BuildOrdinaryMap() const {
+    _map_type result;
+    for (auto& [data, mtx] : _buckets) {
+      lock_guard g(mtx);
+      result.insert(begin(data), end(data));
     }
     return result;
   }
 
-private:
-  Hasher _hasher {};
-  mutable vector<pair<mutex, unordered_map<K, V, Hasher>>> data;
-
-  size_t _index(const K& key) const noexcept {
-    return _hasher(key) % data.size();
-  }
 };
 
+
+// ============= TESTS ===================================
 
 void BaseTest() {
   ConcurrentMap<int, int>cm(4);
