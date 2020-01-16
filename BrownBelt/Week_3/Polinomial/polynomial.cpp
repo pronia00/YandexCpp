@@ -55,6 +55,24 @@ public:
     return coeffs_ == other.coeffs_;
   }
 
+  Polynomial& operator =(const Polynomial& other) { 
+    this->coeffs_ = other.coeffs_;
+    return *this;
+  }
+
+  Polynomial& operator =(Polynomial&& other) {
+    this->coeffs_ = move(other.coeffs_);
+    return *this;
+  }
+
+  Polynomial(const Polynomial& other) {
+    this->coeffs_ = other.coeffs_;
+  }
+
+  Polynomial(Polynomial&& other) {
+    this->coeffs_ = std::move(other.coeffs_);
+  }
+
   bool operator !=(const Polynomial& other) const {
     return !operator==(other);
   }
@@ -88,9 +106,7 @@ public:
   T operator [](size_t degree) const {
     return degree < coeffs_.size() ? coeffs_[degree] : 0;
   }
-
-  // Ð ÐµÐ°Ð»Ð¸Ð·ÑƒÐ¹Ñ‚Ðµ Ð½ÐµÐºÐ¾Ð½ÑÑ‚Ð°Ð½Ñ‚Ð½ÑƒÑŽ Ð²ÐµÑ€ÑÐ¸ÑŽ operator[]
-
+  
   T operator ()(const T& x) const {
     T res = 0;
     for (auto it = coeffs_.rbegin(); it != coeffs_.rend(); ++it) {
@@ -135,6 +151,38 @@ Polynomial<T> operator -(Polynomial<T> lhs, const Polynomial<T>& rhs) {
   return lhs;
 }
 
+void TestAssignment() {
+  Polynomial<int> p (vector<int>{1, 2, 3, 4, 5});
+  Polynomial<int> p2 (vector<int>{6, 7, 8, 9, 10});
+  
+  p = p2;
+  for (size_t i = 0; i < 5; ++i) {
+    ASSERT(p[i] == i + 6);
+  }
+}
+
+void TestMove() {
+  Polynomial<int> p (vector<int>{1, 2, 3, 4, 5});
+  Polynomial<int> p2 (vector<int>{6, 7, 8, 9, 10});
+
+  p = move(p2);
+  for (size_t i = 0; i < 5; ++i) {
+    ASSERT(p[i] == i + 6);
+  }
+  ASSERT(p2.Degree() == -1); // -1 is Degree of empty polynomial expression
+
+  // std::cout << "Move Test" << std::endl;
+  // std::cout <<"p1: "<<  p << std::endl << "p2:" << p2 << std::endl;
+}
+
+void TestCopyConstructor() {
+  Polynomial<int> p ({1, 2, 3, 4, 5});
+  Polynomial<int> p2(p);
+
+  for (size_t i = 0; i < 5; ++i) {
+    ASSERT(p[i] == i + 1);
+  }
+}
 // void TestCreation() {
 //   {
 //     Polynomial<int> default_constructed;
@@ -265,6 +313,10 @@ Polynomial<T> operator -(Polynomial<T> lhs, const Polynomial<T>& rhs) {
 
 int main() {
   TestRunner tr;
+  RUN_TEST(tr, TestCopyConstructor);
+  RUN_TEST(tr, TestAssignment);
+  RUN_TEST(tr, TestMove);
+  
   // RUN_TEST(tr, TestCreation);
   // RUN_TEST(tr, TestEqualComparability);
   // RUN_TEST(tr, TestAddition);
